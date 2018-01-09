@@ -1,4 +1,4 @@
-![](http://www.wherer.cn/images/pub/py.png)
+![](http://www.wherer.cn/images/pub/py.jpg)
 
 # 关于课程
 
