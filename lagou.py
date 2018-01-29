@@ -9,6 +9,7 @@ packages : requests + BeautifulSoup + re + time + PyMySQL
            BeautifulSoup  : API + 正则表达式写法
            爬虫关键字      : 分布式 | 多线程 | 代理
 webSite  : www.lagou.com
+proxy web: http://www.xicidaili.com/wt/
 info     : the job types + job information
 ******************************************************************
 database : lagou
