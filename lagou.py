@@ -25,9 +25,13 @@ tb_type  : id, name, url
             0, 机器学习, jiqixuexi
 tb_job   : id, tid(id in tb_type), name, city, lmoney, hmoney, exper, education, company, field, stage
 ******************************************************************
-## time:2018/01/29
+## time:2018/01/30
 1. create database and tables
 2. get the homePage data
+## time:2018/01/31
+1. get the pages data
+2. insert into db
+3. log the result so I should alter the table named tb_type that add a colum "log"
 
 create database `lagou`;
 use lagou;
