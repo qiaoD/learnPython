@@ -111,17 +111,8 @@ class lagou:
     mysql_conn    = 0
 
     # spider config
-    proxies = ['112.81.30.60:8118',
-               '114.216.128.51:8118',
-               '114.236.1.57:808',
-               '110.250.0.13:8118',
-               '175.166.182.165:80',
-               '119.129.98.11:9797',
-               '114.228.216.136:8118',
-               '49.85.2.139:32393',
-               '182.121.205.156:9999',
-               '119.39.68.151:808'
-              ]
+    proxyUrl      = 'http://tvp.daxiangdaili.com/ip/?tid=559934516929845&num=1000&protocol=https'
+    proxies       = []
     headers = {
         'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
         'Accept-Encoding':'gzip, deflate, br',
@@ -137,13 +128,24 @@ class lagou:
     # web info
     homeUrl   = 'https://www.lagou.com/'
     listUrl   = 'https://www.lagou.com/zhaopin/'
+    allTypes  = []
 
 
     def __init__(self):
 
         self.mysqlConnect()
         if self.mysql_conn:
-            self.homePage()     # get the homePage
+            # self.homePage()     # get the homePage
+            self.types()
+
+            self.makeproxies()
+            self.jobs()
+
+    def makeproxies(self):
+        url = self.proxyUrl
+        reqGet = requests.get(url)
+        self.proxies = reqGet.text.split("\r\n")
+
 
     def mysqlConnect(self):
         try:
@@ -185,11 +187,49 @@ class lagou:
                 cur.execute(sqlInsert.strip(","))
                 mysql_conn.commit()
 
+    def types(self):
+        print("get the types in tb_type...")
+        mysql_conn = self.mysql_conn
+        sqlSelect = "select * from tb_type"
+        with mysql_conn.cursor() as cur:
+            cur.execute(sqlSelect)
+            print("all types count:"+str(cur.rowcount))
+            self.allTypes = [{"name":x[1],"url":x[2]} for x in cur]
+
+
+
+
     def jobs(self):
-        pass
+        allTypes = self.allTypes
+        for types in allTypes:
+            self.jobInfo(types['url'])
+
 
     def jobInfo(self,cat=''):
-        pass
+        url = self.listUrl + cat + '/'
+        headers = self.headers  # http headers
+        proxiesList = self.proxies  # https proxy IP
+        print("beginning get the cat:" + cat)
+        print(url)
+
+        proxies = {"https":proxiesList[2]}
+        print(proxies)
+        reqGet = requests.get(url = url, headers = headers,proxies = proxies)
+        reqGet.encoding = 'UTF-8'
+        pageText = reqGet.text
+        soup = BeautifulSoup(pageText, "lxml")
+        tags = soup.findAll(name='li',attrs={"class":"con_list_item"})
+        # name, city, lmoney, hmoney, exper, education, company, field, stage
+        for tag in tags:
+            name = tag.find(name='h3').text
+            city = tag.find(name='em').text.split('·')[0].strip()
+            moneys = tag.find(name='span',attrs={"class":"money"}).text.split('-')
+            lmoney = moneys[0]
+            hmoney = moneys[1]
+            print(moneys)
+        exit()
+
+
 
     def __del__(self):
             self.mysql_conn.close()
