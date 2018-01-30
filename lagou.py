@@ -111,7 +111,7 @@ class lagou:
     mysql_conn    = 0
 
     # spider config
-    proxyUrl      = 'http://tvp.daxiangdaili.com/ip/?tid=559934516929845&num=1000&protocol=https'
+    proxyUrl      = 'http://tvp.daxiangdaili.com/ip/?tid=559934516929845&num=1000&delay=1&protocol=https'
     proxies       = []
     headers = {
         'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
@@ -209,25 +209,37 @@ class lagou:
         url = self.listUrl + cat + '/'
         headers = self.headers  # http headers
         proxiesList = self.proxies  # https proxy IP
-        print("beginning get the cat:" + cat)
-        print(url)
+        print("beginning get the cat:" + url)
 
-        proxies = {"https":proxiesList[2]}
-        print(proxies)
-        reqGet = requests.get(url = url, headers = headers,proxies = proxies)
-        reqGet.encoding = 'UTF-8'
-        pageText = reqGet.text
-        soup = BeautifulSoup(pageText, "lxml")
-        tags = soup.findAll(name='li',attrs={"class":"con_list_item"})
-        # name, city, lmoney, hmoney, exper, education, company, field, stage
-        for tag in tags:
-            name = tag.find(name='h3').text
-            city = tag.find(name='em').text.split('·')[0].strip()
-            moneys = tag.find(name='span',attrs={"class":"money"}).text.split('-')
-            lmoney = moneys[0]
-            hmoney = moneys[1]
-            print(moneys)
-        exit()
+        pageList = [x for x in range(1,31)]
+        print(pageList)
+        # get the page in for loop
+        while(pageList):
+            if proxiesList:
+                proxies = {"https":proxiesList.pop()}
+            else:
+                self.makeproxies()
+                proxiesList = self.proxies
+            print(proxies)
+            pageNum = pageList[0]
+            try:
+                reqGet = requests.get(url = url + str(pageNum), headers = headers,proxies = proxies, timeout=5)
+            except:
+                print('error')
+            else:
+                if reqGet.status_code == 400:
+                    break;
+                reqGet.encoding = 'UTF-8'
+                pageText = reqGet.text
+                soup = BeautifulSoup(pageText, "lxml")
+                tags = soup.findAll(name='li',attrs={"class":"con_list_item"})
+                # name, city, lmoney, hmoney, exper, education, company, field, stage
+                for tag in tags:
+                    name = tag.find(name='h3').text
+                    city = tag.find(name='em').text.split('·')[0].strip()
+                    moneys = tag.find(name='span',attrs={"class":"money"}).text.split('-')
+                    print(pageNum)
+                del(pageList[0])
 
 
 
