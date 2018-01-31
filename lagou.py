@@ -23,7 +23,7 @@ tables   : tb_type , tb_job
 
 tb_type  : id, name, url
             0, 机器学习, jiqixuexi
-tb_job   : id, tid(id in tb_type), name, city, lmoney, hmoney, exper, education, company, field, stage
+tb_job   : id, tid(id in tb_type), name, city, money, exper, education, company, field, stage
 ******************************************************************
 ## time:2018/01/30
 1. create database and tables
@@ -67,6 +67,9 @@ import requests
 from bs4 import *
 import pymysql
 
+import win_unicode_console
+win_unicode_console.enable()
+
 
 class lagou:
 
@@ -98,6 +101,7 @@ class lagou:
     homeUrl   = 'https://www.lagou.com/'
     listUrl   = 'https://www.lagou.com/zhaopin/'
     allTypes  = []
+    writeUrl  = 'html/'
 
 
     def __init__(self):
@@ -163,7 +167,7 @@ class lagou:
         with mysql_conn.cursor() as cur:
             cur.execute(sqlSelect)
             self.logInfo("all types count:"+str(cur.rowcount))
-            self.allTypes = [{"name":x[1],"url":x[2]} for x in cur]
+            self.allTypes = [{"id":x[0],"name":x[1],"url":x[2]} for x in cur]
 
 
 
@@ -171,14 +175,15 @@ class lagou:
     def jobs(self):
         allTypes = self.allTypes
         for types in allTypes:
-            self.jobInfo(types['url'])
+            self.jobInfo(types['id'],types['url'])
 
 
-    def jobInfo(self,cat=''):
+    def jobInfo(self,tid=-1,cat=''):
         url = self.listUrl + cat + '/'
         headers = self.headers  # http headers
         proxiesList = self.proxies  # https proxy IP
         self.logInfo("beginning get the cat:" + url)
+        mysql_conn = self.mysql_conn
 
         pageList = [x for x in range(1,31)]
         # get the page in for loop
@@ -207,17 +212,43 @@ class lagou:
                 # name, city, lmoney, hmoney, exper, education, company, field, stage
                 if tags:
                     # write in .html
+                    self.logInfo("begin to write in html")
                     self.htmlWrite(pageText,cat+str(pageNum)+".html")
+                    self.logInfo("end ...")
+                    sqlInsert = 'insert into tb_job(`tid`,`name`,`city`,`money`,`exper`,`education`,`company`,`field`,`stage`) VALUES'
                     for tag in tags:
-                        name = tag.find(name='h3').text
-                        city = tag.find(name='em').text.split('·')[0].strip()
-                        moneys = tag.find(name='span',attrs={"class":"money"}).text.split('-')
-                        self.logInfo(pageNum)
-                    del(pageList[0])    # if it seccuess delete it
+                        name       = tag.find(name='h3').text.strip()
+                        city       = tag.find(name='em').text.split('·')[0].strip()
+                        money      = tag.find(name='span',attrs={"class":"money"}).text.strip()
+                        li_b       = tag.find(name='div',attrs={"class":"li_b_l"}).text
+                        pos        = li_b.rfind("k")+1
+                        experAndEd = li_b[pos:].split('/')
+                        exper      = experAndEd[0].strip()
+                        education  = experAndEd[1].strip()
+                        company    = tag.find(name='div',attrs={"class":"company_name"}).find(name='a').text.strip()
+                        industry   = tag.find(name='div',attrs={"class":"industry"}).text.split('/')
+                        field      = industry[0].strip()
+                        stage      = industry[1].strip()
+                        self.logInfo(name+','+city+','+money+','+exper+','+education+','+company+','+field+','+stage)
+                        sqlInsert += '('+str(tid)+','+'"'+name+'","'+city+'","'+money+'","'+exper+'","'+education+'","'+company+'","'+field+'","'+stage+ '"),'
+
+
+                    self.logInfo("begin to write into mysql..")
+                    print(sqlInsert)
+                    with mysql_conn.cursor() as cur:
+                        try:
+                            cur.execute(sqlInsert.strip(","))
+                            mysql_conn.commit()
+                        except:
+                            self.logInfo("mysql error")
+                        else:
+                            del(pageList[0])
+                    self.logInfo("end..")
 
 
     def htmlWrite(self,text,filename):
-        with open(filename, "a+", encoding='UTF-8') as f:
+        url = self.writeUrl+filename
+        with open(url, "w", encoding='UTF-8') as f:
             f.write(text)
         f.close()
 
