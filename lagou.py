@@ -29,7 +29,7 @@ tb_job   : id, tid(id in tb_type), name, city, lmoney, hmoney, exper, education,
 1. create database and tables
 2. get the homePage data
 ## time:2018/01/31
-1. get the pages data
+1. get the pages data ok
 2. insert into db
 3. log the result so I should alter the table named tb_type that add a colum "log"
 
@@ -48,8 +48,7 @@ CREATE TABLE `tb_job` (
     `tid` int(11)  NOT NULL,
     `name` varchar(255)  NOT NULL,
     `city` varchar(255)  NOT NULL,
-    `lmoney` int(11)  NOT NULL,
-    `hmoney` int(11)  NOT NULL,
+    `money` varchar(255)  NOT NULL,
     `exper` varchar(255)  NOT NULL,
     `education` varchar(255)  NOT NULL,
     `company` varchar(255)  NOT NULL,
@@ -67,42 +66,7 @@ import re
 import requests
 from bs4 import *
 import pymysql
-'''
-for i in range(1):
-    #time.sleep(15)
-    mainPage = 'https://www.lagou.com/'
-    proxies = {
-        "https": "119.129.98.11:9797",
-    }
-    headers = {
-        'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Encoding':'gzip, deflate, br',
-        'Accept-Language':'en,zh-CN;q=0.9,zh;q=0.8,en-US;q=0.7',
-        'Cache-Control':'max-age=0',
-        'Connection':'keep-alive',
-        'Host':'www.lagou.com',
-        'Referer':'https://www.lagou.com/',
-        'Upgrade-Insecure-Requests':'1',
-        'User-Agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Mobile Safari/537.36'
-        }
-    try:
-        req = requests.get(mainPage, proxies = proxies)
-    except requests.exceptions.ProxyError:
-        print('error')
-    else:
-        print(i)
-        #re.encoding = 'UTF-8'
-        text = req.text                  # 解析登录页
-        soup = BeautifulSoup(text, "lxml")
-        tags = soup.findAll(name='a',attrs={"href":re.compile(r'^https://www.lagou.com/zhaopin/.')})
-        for tag in tags:
-            print(tag.get('href').strip('/'))
-            tt = tag.get('href').strip('/').split('/')[-1]
-            print(str(tt))
 
-
-#print(text)
-'''
 
 class lagou:
 
@@ -113,6 +77,7 @@ class lagou:
     mysql_db      = 'lagou'
     mysql_port    = 3306
     mysql_conn    = 0
+    mysql_charset = 'utf8'
 
     # spider config
     proxyUrl      = 'http://tvp.daxiangdaili.com/ip/?tid=559934516929845&num=1000&delay=1&protocol=https'
@@ -158,9 +123,9 @@ class lagou:
                                    password = self.mysql_pwd,
                                    db       = self.mysql_db,
                                    port     = self.mysql_port,
-                                   charset  = "utf8"
+                                   charset  = self.mysql_charset
                                   )
-        except pymysql.err.OperationalError:
+        except:
             print("link mysql error!")
         else:
             self.mysql_conn = conn
@@ -173,7 +138,7 @@ class lagou:
         # sql
         mysql_conn = self.mysql_conn
         sqlInsert = "insert into tb_type(`name`,`url`) VALUES "
-        print("beginning...")
+        self.logInfo("beginning...")
         req = requests.get(self.homeUrl)
         if req.status_code == 200:
             req.encoding = 'UTF-8'
@@ -185,19 +150,19 @@ class lagou:
                 url = tag.get('href').strip('/').split('/')[-1]
                 print(name+"--"+url)
                 sqlInsert += '("'+name+'","'+url+'"),'
-            print(sqlInsert)
-            print("insert into mysql...")
+            #print(sqlInsert)
+            self.logInfo("insert into mysql...")
             with mysql_conn.cursor() as cur:
                 cur.execute(sqlInsert.strip(","))
                 mysql_conn.commit()
 
     def types(self):
-        print("get the types in tb_type...")
+        self.logInfo("get the types in tb_type...")
         mysql_conn = self.mysql_conn
         sqlSelect = "select * from tb_type"
         with mysql_conn.cursor() as cur:
             cur.execute(sqlSelect)
-            print("all types count:"+str(cur.rowcount))
+            self.logInfo("all types count:"+str(cur.rowcount))
             self.allTypes = [{"name":x[1],"url":x[2]} for x in cur]
 
 
@@ -213,10 +178,9 @@ class lagou:
         url = self.listUrl + cat + '/'
         headers = self.headers  # http headers
         proxiesList = self.proxies  # https proxy IP
-        print("beginning get the cat:" + url)
+        self.logInfo("beginning get the cat:" + url)
 
         pageList = [x for x in range(1,31)]
-        print(pageList)
         # get the page in for loop
         while(pageList):
             if proxiesList:
@@ -224,12 +188,15 @@ class lagou:
             else:
                 self.makeproxies()
                 proxiesList = self.proxies
-            print(proxies)
             pageNum = pageList[0]
+            numUrl  = url + str(pageNum)
+
+            self.logInfo("begin to get the url:"+numUrl)
+
             try:
-                reqGet = requests.get(url = url + str(pageNum), headers = headers,proxies = proxies, timeout=5)
+                reqGet = requests.get(url = numUrl, headers = headers,proxies = proxies, timeout=5)
             except:
-                print('error')
+                self.logInfo('error!')
             else:
                 if reqGet.status_code == 400:
                     break;
@@ -238,13 +205,24 @@ class lagou:
                 soup = BeautifulSoup(pageText, "lxml")
                 tags = soup.findAll(name='li',attrs={"class":"con_list_item"})
                 # name, city, lmoney, hmoney, exper, education, company, field, stage
-                for tag in tags:
-                    name = tag.find(name='h3').text
-                    city = tag.find(name='em').text.split('·')[0].strip()
-                    moneys = tag.find(name='span',attrs={"class":"money"}).text.split('-')
-                    print(pageNum)
-                del(pageList[0])
+                if tags:
+                    # write in .html
+                    self.htmlWrite(pageText,cat+str(pageNum)+".html")
+                    for tag in tags:
+                        name = tag.find(name='h3').text
+                        city = tag.find(name='em').text.split('·')[0].strip()
+                        moneys = tag.find(name='span',attrs={"class":"money"}).text.split('-')
+                        self.logInfo(pageNum)
+                    del(pageList[0])    # if it seccuess delete it
 
+
+    def htmlWrite(self,text,filename):
+        with open(filename, "a+", encoding='UTF-8') as f:
+            f.write(text)
+        f.close()
+
+    def logInfo(self,info):
+        print(info)
 
 
     def __del__(self):
