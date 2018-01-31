@@ -54,6 +54,7 @@ CREATE TABLE `tb_job` (
     `company` varchar(255)  NOT NULL,
     `field` varchar(255)  NOT NULL,
     `stage` varchar(255)  NOT NULL,
+    `url` varchar(255)  NOT NULL,
     PRIMARY KEY (`id`)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin,
 AUTO_INCREMENT=1;
@@ -215,13 +216,15 @@ class lagou:
                     self.logInfo("begin to write in html")
                     self.htmlWrite(pageText,cat+str(pageNum)+".html")
                     self.logInfo("end ...")
-                    sqlInsert = 'insert into tb_job(`tid`,`name`,`city`,`money`,`exper`,`education`,`company`,`field`,`stage`) VALUES'
+                    sqlInsert = 'insert into tb_job(`tid`,`name`,`city`,`money`,`exper`,`education`,`company`,`field`,`stage`,`url`) VALUES'
                     for tag in tags:
                         name       = tag.find(name='h3').text.strip()
                         city       = tag.find(name='em').text.split('·')[0].strip()
                         money      = tag.find(name='span',attrs={"class":"money"}).text.strip()
                         li_b       = tag.find(name='div',attrs={"class":"li_b_l"}).text
                         pos        = li_b.rfind("k")+1
+                        if -1 == pos:
+                            pos    = li_b.rfind("K")+1
                         experAndEd = li_b[pos:].split('/')
                         exper      = experAndEd[0].strip()
                         education  = experAndEd[1].strip()
@@ -229,8 +232,9 @@ class lagou:
                         industry   = tag.find(name='div',attrs={"class":"industry"}).text.split('/')
                         field      = industry[0].strip()
                         stage      = industry[1].strip()
+                        sqlUrl       = tag.find(name='a',attrs={"class":"position_link"}).get('href').strip()
                         self.logInfo(name+','+city+','+money+','+exper+','+education+','+company+','+field+','+stage)
-                        sqlInsert += '('+str(tid)+','+'"'+name+'","'+city+'","'+money+'","'+exper+'","'+education+'","'+company+'","'+field+'","'+stage+ '"),'
+                        sqlInsert += '('+str(tid)+','+'"'+name+'","'+city+'","'+money+'","'+exper+'","'+education+'","'+company+'","'+field+'","'+stage+'","'+sqlUrl+ '"),'
 
 
                     self.logInfo("begin to write into mysql..")
