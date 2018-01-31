@@ -238,7 +238,7 @@ class lagou:
 
 
                     self.logInfo("begin to write into mysql..")
-                    print(sqlInsert)
+                    #self.logInfo(sqlInsert)
                     with mysql_conn.cursor() as cur:
                         try:
                             cur.execute(sqlInsert.strip(","))
