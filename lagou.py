@@ -204,7 +204,8 @@ class lagou:
             except:
                 self.logInfo('error!')
             else:
-                if reqGet.status_code == 400:
+                print(reqGet.status_code)
+                if reqGet.status_code == 404 :
                     break;
                 reqGet.encoding = 'UTF-8'
                 pageText = reqGet.text
