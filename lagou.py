@@ -13,6 +13,15 @@ webSite  : www.lagou.com
 proxy web: http://www.xicidaili.com/wn/
 info     : the job types + job information
 ******************************************************************
+
+lists    : 1. requests API       : http://cn.python-requests.org/zh_CN/latest/
+           2. BeautifulSoup API  : https://www.crummy.com/software/BeautifulSoup/bs4/doc.zh/
+           3. re API             : https://docs.python.org/3/library/re.html
+           4. PyMySQL API        : https://www.tutorialspoint.com/python3/python_database_access.htm
+           5. try-except         : https://www.tutorialspoint.com/python3/python_exceptions.htm
+           6. file op            : https://www.tutorialspoint.com/python3/python_files_io.htm
+
+******************************************************************
 issues   : 1. pymysql API
            2. mysql charset
            3. how to use try - except
