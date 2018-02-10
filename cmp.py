@@ -34,7 +34,8 @@ print('================================')
 
 with MyCMP('with-exception'):
     print('with-body')
-    raise Exception
+    # raise Exception
+    1/0
 
 
 
